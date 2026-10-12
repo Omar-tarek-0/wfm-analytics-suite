@@ -9,35 +9,225 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CUSTOM CSS UI ENHANCEMENT ---
+# ==========================================
+# --- DESIGN SYSTEM (UI ONLY) ---
+# ==========================================
+# Palette: Ink #14213D | Teal #0E9F8E | Amber #F59E0B | Indigo #5B6CFF | Coral #EF4444
 st.markdown("""
     <style>
-        .main { padding: 1.5rem; }
-        .stMetric {
-            background-color: rgba(128, 128, 128, 0.1);
-            border: 1px solid rgba(128, 128, 128, 0.2);
-            padding: 12px 18px;
-            border-radius: 8px;
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        html, body, [class*="css"], .stApp, button, input, textarea {
+            font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
         }
+
+        /* Clean up Streamlit chrome */
+        #MainMenu, footer { visibility: hidden; }
+        header[data-testid="stHeader"] { background: transparent; }
+        .block-container { padding-top: 1.6rem; padding-bottom: 3rem; max-width: 1280px; }
+
+        /* ---------- Hero ---------- */
+        .hero {
+            background:
+                radial-gradient(circle at 92% 8%, rgba(14,159,142,0.45) 0, transparent 38%),
+                radial-gradient(circle at 70% 120%, rgba(91,108,255,0.40) 0, transparent 45%),
+                #14213D;
+            border-radius: 20px;
+            padding: 34px 40px 30px 40px;
+            margin-bottom: 1.4rem;
+            color: #FFFFFF;
+        }
+        .hero h1 {
+            font-size: 2.3rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0 0 6px 0;
+            padding: 0;
+            color: #FFFFFF;
+        }
+        .hero p {
+            font-size: 1.02rem;
+            margin: 0 0 20px 0;
+            max-width: 640px;
+            color: rgba(255,255,255,0.78);
+            line-height: 1.55;
+        }
+        .hero-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.18);
+            color: #FFFFFF;
+        }
+        .chip .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+        /* ---------- Tabs (pill style) ---------- */
         .stTabs [data-baseweb="tab-list"] {
-            gap: 12px;
+            gap: 8px;
+            background: rgba(128,128,128,0.10);
+            padding: 6px;
+            border-radius: 14px;
+            border-bottom: none;
         }
         .stTabs [data-baseweb="tab"] {
-            height: 48px;
-            border-radius: 6px;
-            padding-left: 18px;
-            padding-right: 18px;
-            font-weight: 600;
+            height: 46px;
+            border-radius: 10px;
+            padding: 0 22px;
+            font-weight: 700;
+            background: transparent;
+            border: none;
+        }
+        .stTabs [aria-selected="true"] {
+            background: #14213D !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 4px 14px rgba(20,33,61,0.30);
+        }
+        .stTabs [aria-selected="true"] p { color: #FFFFFF !important; }
+        .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display: none; }
+
+        /* ---------- Section header ---------- */
+        .sec-head { display: flex; align-items: center; gap: 14px; margin: 1.3rem 0 0.4rem 0; }
+        .sec-icon {
+            width: 46px; height: 46px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+        }
+        .sec-title { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; margin: 0; line-height: 1.2; }
+        .sec-sub { font-size: 0.92rem; opacity: 0.68; margin: 2px 0 0 0; }
+
+        /* ---------- Upload area ---------- */
+        [data-testid="stFileUploader"] section {
+            border: 2px dashed rgba(128,128,128,0.40);
+            border-radius: 14px;
+            background: rgba(128,128,128,0.06);
+            padding: 1rem 1.2rem;
+        }
+        [data-testid="stFileUploader"] section:hover { border-color: #0E9F8E; background: rgba(14,159,142,0.07); }
+        [data-testid="stFileUploader"] label p { font-weight: 700; }
+
+        /* ---------- Buttons ---------- */
+        .stButton > button[kind="primary"] {
+            background: linear-gradient(135deg, #0E9F8E 0%, #5B6CFF 100%);
+            border: none;
+            border-radius: 12px;
+            height: 3.1rem;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #FFFFFF;
+            box-shadow: 0 6px 18px rgba(91,108,255,0.28);
+        }
+        .stButton > button[kind="primary"]:hover { filter: brightness(1.07); }
+        .stDownloadButton > button {
+            border-radius: 12px;
+            font-weight: 700;
+            border: 2px solid #0E9F8E;
+            color: #0E9F8E;
+            background: transparent;
+        }
+        .stDownloadButton > button:hover { background: #0E9F8E; color: #FFFFFF; border-color: #0E9F8E; }
+
+        /* ---------- KPI cards ---------- */
+        .kpi {
+            background: rgba(128,128,128,0.08);
+            border: 1px solid rgba(128,128,128,0.18);
+            border-left: 6px solid var(--accent);
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin: 14px 0 6px 0;
+        }
+        .kpi-label { font-size: 0.86rem; font-weight: 600; opacity: 0.7; margin: 0; }
+        .kpi-value { font-size: 2.2rem; font-weight: 800; line-height: 1.15; margin: 4px 0 0 0; color: var(--accent); }
+
+        /* ---------- Table + misc ---------- */
+        [data-testid="stDataFrame"] {
+            border: 1px solid rgba(128,128,128,0.22);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .table-title { font-size: 1.02rem; font-weight: 700; margin: 1.2rem 0 0.5rem 0; }
+        [data-testid="stAlert"] { border-radius: 12px; }
+
+        @media (max-width: 768px) {
+            .hero { padding: 24px 20px; }
+            .hero h1 { font-size: 1.7rem; }
         }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📊 WFM Operations Analytics Suite")
-st.caption("Upload raw operational files below to instantly process workforce metrics and download SLA reports.")
+
+# --- UI helper functions (display only) ---
+ACCENT_AMBER = "#F59E0B"
+ACCENT_TEAL = "#0E9F8E"
+ACCENT_INDIGO = "#5B6CFF"
+ACCENT_CORAL = "#EF4444"
+
+
+def section_header(icon, title, subtitle, tint):
+    st.markdown(
+        f"""
+        <div class="sec-head">
+            <div class="sec-icon" style="background:{tint}22;">{icon}</div>
+            <div>
+                <p class="sec-title">{title}</p>
+                <p class="sec-sub">{subtitle}</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def kpi_card(col, label, value, accent):
+    col.markdown(
+        f"""
+        <div class="kpi" style="--accent:{accent};">
+            <p class="kpi-label">{label}</p>
+            <p class="kpi-value">{value}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def style_status(df, col):
+    def _color(v):
+        s = str(v)
+        if "Late" in s or "Exceeded" in s:
+            return "background-color: rgba(239,68,68,0.16); color: #EF4444; font-weight: 700"
+        if "On Time" in s or "Within" in s:
+            return "background-color: rgba(14,159,142,0.16); color: #0E9F8E; font-weight: 700"
+        if "Off" in s:
+            return "background-color: rgba(128,128,128,0.16); font-weight: 600"
+        return ""
+    return df.style.apply(lambda s: s.map(_color), subset=[col])
+
+
+def table_title(text):
+    st.markdown(f'<p class="table-title">{text}</p>', unsafe_allow_html=True)
+
+
+# --- HERO ---
+st.markdown("""
+    <div class="hero">
+        <h1>📊 WFM Operations Analytics Suite</h1>
+        <p>Upload your raw operational files, review agent performance at a glance, and download ready-to-share SLA reports.</p>
+        <div class="hero-chips">
+            <span class="chip"><span class="dot" style="background:#F59E0B;"></span>Lateness audit</span>
+            <span class="chip"><span class="dot" style="background:#0E9F8E;"></span>Meals over 60 min</span>
+            <span class="chip"><span class="dot" style="background:#5B6CFF;"></span>Breaks over 15 min</span>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
 # Tab Navigation
 tab1, tab2, tab3 = st.tabs([
-    "⏰ Agent Lateness Report", 
+    "⏰ Agent Lateness Report",
     "🍱 Meal Exceeded Report",
     "☕ Break Summary & Exceeded Report"
 ])
@@ -77,13 +267,14 @@ iex_mapping_clean = {" ".join(k.split()).lower(): v for k, v in iex_mapping.item
 # --- TAB 1: LATENESS ---
 # ==========================================
 with tab1:
-    st.subheader("Daily Shift Lateness Audit")
-    
+    section_header("⏰", "Daily Shift Lateness Audit",
+                   "Compare each agent's first login against their scheduled shift start.", ACCENT_AMBER)
+
     col1, col2 = st.columns(2)
     with col1:
-        file_sched = st.file_uploader("Upload Master Schedule (`Scheduale.csv`)", type=["csv"], key="sched_upload")
+        file_sched = st.file_uploader("1 · Master Schedule (`Scheduale.csv`)", type=["csv"], key="sched_upload")
     with col2:
-        file_ts_late = st.file_uploader("Upload Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_late_upload")
+        file_ts_late = st.file_uploader("2 · Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_late_upload")
 
     if file_sched and file_ts_late:
         if st.button("Generate Lateness Audit", type="primary", use_container_width=True):
@@ -163,25 +354,30 @@ with tab1:
                         })
 
                     df_final = pd.DataFrame(lateness_results).sort_values(by=["Lateness (Mins)", "Scheduled Shift Start", "Agent"], ascending=[False, True, True])
-                    
+
                     # Metrics Banner
                     m1, m2, m3 = st.columns(3)
-                    m1.metric("Total Agents Audited", len(df_final))
-                    m2.metric("Late Logins", len(df_final[df_final["Status"] == "❌ Late"]))
-                    m3.metric("On-Time / Unscheduled", len(df_final[df_final["Status"] != "❌ Late"]))
+                    kpi_card(m1, "Total Agents Audited", len(df_final), ACCENT_INDIGO)
+                    kpi_card(m2, "Late Logins", len(df_final[df_final["Status"] == "❌ Late"]), ACCENT_CORAL)
+                    kpi_card(m3, "On-Time / Unscheduled", len(df_final[df_final["Status"] != "❌ Late"]), ACCENT_TEAL)
 
-                    st.dataframe(df_final, use_container_width=True)
+                    table_title(f"Results for {display_date_str}")
+                    st.dataframe(style_status(df_final, "Status"), use_container_width=True, hide_index=True)
                     st.download_button("📥 Download Lateness CSV Report", data=df_final.to_csv(index=False).encode("utf-8"), file_name="agent_lateness_report_daily.csv", mime="text/csv")
             except Exception as e:
                 st.error(f"An error occurred while processing: {e}")
+    else:
+        st.info("Upload both files above to unlock the audit.", icon="📂")
 
 
 # ==========================================
 # --- TAB 2: MEAL EXCEEDED ---
 # ==========================================
 with tab2:
-    st.subheader("Meal Duration Audit (>60 Mins)")
-    file_ts_meal = st.file_uploader("Upload Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_meal_upload")
+    section_header("🍱", "Meal Duration Audit (>60 Mins)",
+                   "Find every meal that ran past the 60-minute allowance and see how far over it went.", ACCENT_TEAL)
+
+    file_ts_meal = st.file_uploader("Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_meal_upload")
 
     if file_ts_meal:
         if st.button("Generate Meal Audit", type="primary", use_container_width=True):
@@ -230,25 +426,30 @@ with tab2:
                                 meal_start = None
 
                 df_meals = pd.DataFrame(meal_records).drop_duplicates(subset=["Agent", "Meal Start"]).sort_values(by="Exceeded Minutes", ascending=False)
-                
+
                 # Metrics Banner
                 m1, m2, m3 = st.columns(3)
-                m1.metric("Total Meals Logged", len(df_meals))
-                m2.metric("Meals Exceeding 60m", len(df_meals[df_meals["Exceeded Minutes"] > 0]))
-                m3.metric("Compliant Meals", len(df_meals[df_meals["Exceeded Minutes"] == 0]))
+                kpi_card(m1, "Total Meals Logged", len(df_meals), ACCENT_INDIGO)
+                kpi_card(m2, "Meals Exceeding 60m", len(df_meals[df_meals["Exceeded Minutes"] > 0]), ACCENT_CORAL)
+                kpi_card(m3, "Compliant Meals", len(df_meals[df_meals["Exceeded Minutes"] == 0]), ACCENT_TEAL)
 
-                st.dataframe(df_meals, use_container_width=True)
+                table_title("Meal details")
+                st.dataframe(style_status(df_meals, "Status"), use_container_width=True, hide_index=True)
                 st.download_button("📥 Download Meal Exceeded CSV Report", data=df_meals.to_csv(index=False).encode("utf-8"), file_name="meal_exceeded_report.csv", mime="text/csv")
             except Exception as e:
                 st.error(f"An error occurred while processing: {e}")
+    else:
+        st.info("Upload the timestamps file above to unlock the audit.", icon="📂")
 
 
 # ==========================================
 # --- TAB 3: BREAK EXCEEDED (WIDE FORMAT) ---
 # ==========================================
 with tab3:
-    st.subheader("Break Summary & Duration Audit (>15 Mins)")
-    file_ts_break = st.file_uploader("Upload Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_break_wide_upload")
+    section_header("☕", "Break Summary & Duration Audit (>15 Mins)",
+                   "See every break per agent in one row, with the minutes over the 15-minute allowance.", ACCENT_INDIGO)
+
+    file_ts_break = st.file_uploader("Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_break_wide_upload")
 
     if file_ts_break:
         if st.button("Generate Break Summary", type="primary", use_container_width=True):
@@ -288,14 +489,14 @@ with tab3:
 
                                 exceeded_mins = max(0, duration_min - BREAK_LIMIT_MINS)
                                 break_str = f"{duration_min} mins ({start_str} - {end_str})"
-                                
+
                                 if exceeded_mins > 0:
                                     break_str += f"  +{exceeded_mins}m"
-                                
+
                                 agent_map[agent]["breaks"].append(break_str)
                                 agent_map[agent]["total_exceeded"] += exceeded_mins
                                 max_breaks = max(max_breaks, len(agent_map[agent]["breaks"]))
-                                
+
                                 in_break = False
                                 break_start = None
 
@@ -304,7 +505,7 @@ with tab3:
                 for agent in sorted(agent_map.keys()):
                     data = agent_map[agent]
                     row_data = {"Agent": agent}
-                    
+
                     # Pad out break columns (Break 1, Break 2, etc.)
                     for i in range(max_breaks):
                         col_name = f"Break {i+1}"
@@ -312,7 +513,7 @@ with tab3:
                             row_data[col_name] = data["breaks"][i]
                         else:
                             row_data[col_name] = "-"
-                            
+
                     row_data["Total Exceeded (Mins)"] = data["total_exceeded"]
                     row_data["Status"] = " Exceeded SLA" if data["total_exceeded"] > 0 else "Within SLA"
                     final_rows.append(row_data)
@@ -321,16 +522,19 @@ with tab3:
 
                 # Metrics Banner
                 m1, m2, m3 = st.columns(3)
-                m1.metric("Agents with Breaks", len(df_breaks_wide))
-                m2.metric("Agents Exceeding Allowance", len(df_breaks_wide[df_breaks_wide["Total Exceeded (Mins)"] > 0]))
-                m3.metric("Highest Break Count", max_breaks)
+                kpi_card(m1, "Agents with Breaks", len(df_breaks_wide), ACCENT_INDIGO)
+                kpi_card(m2, "Agents Exceeding Allowance", len(df_breaks_wide[df_breaks_wide["Total Exceeded (Mins)"] > 0]), ACCENT_CORAL)
+                kpi_card(m3, "Highest Break Count", max_breaks, ACCENT_AMBER)
 
-                st.dataframe(df_breaks_wide, use_container_width=True)
+                table_title("Break details by agent")
+                st.dataframe(style_status(df_breaks_wide, "Status"), use_container_width=True, hide_index=True)
                 st.download_button(
-                    "📥 Download Break Summary CSV", 
-                    data=df_breaks_wide.to_csv(index=False).encode("utf-8"), 
-                    file_name="break_summary_report.csv", 
+                    "📥 Download Break Summary CSV",
+                    data=df_breaks_wide.to_csv(index=False).encode("utf-8"),
+                    file_name="break_summary_report.csv",
                     mime="text/csv"
                 )
             except Exception as e:
                 st.error(f"An error occurred while processing: {e}")
+    else:
+        st.info("Upload the timestamps file above to unlock the summary.", icon="📂")
