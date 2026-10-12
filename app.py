@@ -14,11 +14,10 @@ st.markdown("""
     <style>
         .main { padding: 1.5rem; }
         .stMetric {
-            background-color: #F8F9FA;
-            border: 1px solid #E9ECEF;
+            background-color: rgba(128, 128, 128, 0.1);
+            border: 1px solid rgba(128, 128, 128, 0.2);
             padding: 12px 18px;
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         .stTabs [data-baseweb="tab-list"] {
             gap: 12px;
