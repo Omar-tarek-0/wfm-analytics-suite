@@ -40,7 +40,7 @@ st.caption("Upload raw operational files below to instantly process workforce me
 tab1, tab2, tab3 = st.tabs([
     "⏰ Agent Lateness Report", 
     "🍱 Meal Exceeded Report",
-    "☕ Break Exceeded Report"
+    "☕ Break Summary & Exceeded Report"
 ])
 
 # Master Mappings & Exclusions
@@ -245,23 +245,27 @@ with tab2:
 
 
 # ==========================================
-# --- TAB 3: BREAK EXCEEDED ---
+# --- TAB 3: BREAK EXCEEDED (WIDE FORMAT) ---
 # ==========================================
 with tab3:
-    st.subheader("Break Duration Audit (>15 Mins)")
-    file_ts_break = st.file_uploader("Upload Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_break_upload")
+    st.subheader("Break Summary & Duration Audit (>15 Mins)")
+    file_ts_break = st.file_uploader("Upload Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_break_wide_upload")
 
     if file_ts_break:
-        if st.button("Generate Break Audit", type="primary", use_container_width=True):
+        if st.button("Generate Break Summary", type="primary", use_container_width=True):
             try:
                 df = pd.read_csv(file_ts_break)
                 df["Timestamp"] = pd.to_datetime(df["Timestamp"])
                 df = df.sort_values(by=["Agent", "Timestamp"]).reset_index(drop=True)
 
-                break_records = []
+                agent_map = {}
+                max_breaks = 2
                 BREAK_LIMIT_MINS = 15
 
                 for agent, group in df.groupby("Agent"):
+                    if agent not in agent_map:
+                        agent_map[agent] = {"breaks": [], "total_exceeded": 0}
+
                     group = group.reset_index(drop=True)
                     in_break = False
                     break_start = None
@@ -278,32 +282,32 @@ with tab3:
                             if is_returned_away or is_voice_avail:
                                 break_end = row["Timestamp"]
                                 duration_sec = (break_end - break_start).total_seconds()
-                                duration_min = duration_sec / 60.0
+                                duration_min = int(round(duration_sec / 60.0))
 
-                                limit_sec = BREAK_LIMIT_MINS * 60
-                                exceeded_sec = max(0, duration_sec - limit_sec)
-                                exceeded_str = f"{int(exceeded_sec // 60)}m {int(exceeded_sec % 60)}s" if exceeded_sec > 0 else "0m 0s"
+                                start_str = break_start.strftime("%H:%M")
+                                end_str = break_end.strftime("%H:%M")
 
-                                break_records.append({
-                                    "Agent": agent, "Break Start": break_start.strftime("%H:%M:%S"),
-                                    "Break Return": break_end.strftime("%H:%M:%S"),
-                                    "Actual Duration": f"{int(duration_min)}m {int(duration_sec % 60)}s",
-                                    "Total Minutes": round(duration_min, 2), "Exceeded (vs 15m)": exceeded_str,
-                                    "Exceeded Minutes": round(exceeded_sec / 60.0, 2),
-                                    "Status": "❌ Exceeded SLA" if exceeded_sec > 0 else "✅ Within SLA"
-                                })
+                                exceeded_mins = max(0, duration_min - BREAK_LIMIT_MINS)
+                                break_str = f"{duration_min} mins ({start_str} - {end_str})"
+                                
+                                if exceeded_mins > 0:
+                                    break_str += f" ⚠️ +{exceeded_mins}m"
+                                
+                                agent_map[agent]["breaks"].append(break_str)
+                                agent_map[agent]["total_exceeded"] += exceeded_mins
+                                max_breaks = max(max_breaks, len(agent_map[agent]["breaks"]))
+                                
                                 in_break = False
                                 break_start = None
 
-                df_breaks = pd.DataFrame(break_records).drop_duplicates(subset=["Agent", "Break Start"]).sort_values(by="Exceeded Minutes", ascending=False)
-
-                # Metrics Banner
-                m1, m2, m3 = st.columns(3)
-                m1.metric("Total Breaks Logged", len(df_breaks))
-                m2.metric("Breaks Exceeding 15m", len(df_breaks[df_breaks["Exceeded Minutes"] > 0]))
-                m3.metric("Compliant Breaks", len(df_breaks[df_breaks["Exceeded Minutes"] == 0]))
-
-                st.dataframe(df_breaks, use_container_width=True)
-                st.download_button("📥 Download Break Exceeded CSV Report", data=df_breaks.to_csv(index=False).encode("utf-8"), file_name="break_exceeded_report.csv", mime="text/csv")
-            except Exception as e:
-                st.error(f"An error occurred while processing: {e}")
+                # Build the wide-format table rows
+                final_rows = []
+                for agent in sorted(agent_map.keys()):
+                    data = agent_map[agent]
+                    row_data = {"Agent": agent}
+                    
+                    # Pad out break columns (Break 1, Break 2, etc.)
+                    for i in range(max_breaks):
+                        col_name = f"Break {i+1}"
+                        if i < len(data["breaks"]):
+                            row_data
