@@ -291,7 +291,7 @@ with tab3:
                                 break_str = f"{duration_min} mins ({start_str} - {end_str})"
                                 
                                 if exceeded_mins > 0:
-                                    break_str += f" ⚠️ +{exceeded_mins}m"
+                                    break_str += f"  +{exceeded_mins}m"
                                 
                                 agent_map[agent]["breaks"].append(break_str)
                                 agent_map[agent]["total_exceeded"] += exceeded_mins
@@ -315,7 +315,7 @@ with tab3:
                             row_data[col_name] = "-"
                             
                     row_data["Total Exceeded (Mins)"] = data["total_exceeded"]
-                    row_data["Status"] = "❌ Exceeded SLA" if data["total_exceeded"] > 0 else "✅ Within SLA"
+                    row_data["Status"] = " Exceeded SLA" if data["total_exceeded"] > 0 else "Within SLA"
                     final_rows.append(row_data)
 
                 df_breaks_wide = pd.DataFrame(final_rows)
