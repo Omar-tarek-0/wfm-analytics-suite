@@ -1,11 +1,49 @@
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="WFM Analytics Suite", layout="wide")
+# Page Configuration
+st.set_page_config(
+    page_title="WFM Operations Analytics Suite",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# --- CUSTOM CSS UI ENHANCEMENT ---
+st.markdown("""
+    <style>
+        .main { padding: 1.5rem; }
+        .stMetric {
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            padding: 12px 18px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 12px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            height: 48px;
+            border-radius: 6px;
+            padding-left: 18px;
+            padding-right: 18px;
+            font-weight: 600;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("📊 WFM Operations Analytics Suite")
+st.caption("Upload raw operational files below to instantly process workforce metrics and download SLA reports.")
 
-tab1, tab2 = st.tabs(["⏰ Agent Lateness Report", "🍱 Meal Exceeded Report"])
+# Tab Navigation
+tab1, tab2, tab3 = st.tabs([
+    "⏰ Agent Lateness Report", 
+    "🍱 Meal Exceeded Report",
+    "☕ Break Exceeded Report"
+])
 
+# Master Mappings & Exclusions
 exclude_agents = [
     "Raneem Elsheikh", "Radwa Abdelaal", "Mohamed Tantawy",
     "Ahmed Ebrahim", "Nouran Elsayed", "Alaa Elsebakhy",
@@ -35,14 +73,21 @@ iex_mapping = {
 }
 iex_mapping_clean = {" ".join(k.split()).lower(): v for k, v in iex_mapping.items()}
 
+
+# ==========================================
 # --- TAB 1: LATENESS ---
+# ==========================================
 with tab1:
-    st.subheader("Generate Daily Agent Lateness Report")
-    file_sched = st.file_uploader("Upload Master Schedule (`Scheduale.csv`)", type=["csv"], key="sched_upload")
-    file_ts_late = st.file_uploader("Upload Daily Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_late_upload")
+    st.subheader("Daily Shift Lateness Audit")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        file_sched = st.file_uploader("Upload Master Schedule (`Scheduale.csv`)", type=["csv"], key="sched_upload")
+    with col2:
+        file_ts_late = st.file_uploader("Upload Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_late_upload")
 
     if file_sched and file_ts_late:
-        if st.button("Process Lateness Report", type="primary"):
+        if st.button("Generate Lateness Audit", type="primary", use_container_width=True):
             try:
                 df_sched = pd.read_csv(file_sched, low_memory=False)
                 df_ts = pd.read_csv(file_ts_late)
@@ -100,16 +145,16 @@ with tab1:
                                         mins, secs = int(diff_sec // 60), int(diff_sec % 60)
                                         lateness_str = f"{mins // 60}h {mins % 60:02d}m {secs:02d}s" if mins >= 60 else f"{mins}m {secs:02d}s"
                                         late_mins = round(diff_sec / 60.0, 2)
-                                        status = "Late"
+                                        status = "❌ Late"
                                     else:
-                                        lateness_str, late_mins, status = "0m 0s", 0.0, "On Time"
+                                        lateness_str, late_mins, status = "0m 0s", 0.0, "✅ On Time"
                                     formatted_shift = sched_time_dt.strftime("%I:%M %p")
                                 else:
-                                    formatted_shift, lateness_str, late_mins, status = "N/A", "0m 0s", 0.0, "✅ Off / Unscheduled"
+                                    formatted_shift, lateness_str, late_mins, status = "N/A", "0m 0s", 0.0, "⚪ Off / Unscheduled"
                             else:
-                                formatted_shift, lateness_str, late_mins, status = "Off", "0m 0s", 0.0, "✅ Off / Unscheduled"
+                                formatted_shift, lateness_str, late_mins, status = "Off", "0m 0s", 0.0, "⚪ Off / Unscheduled"
                         else:
-                            formatted_shift, lateness_str, late_mins, status, sched_name = "N/A", "0m 0s", 0.0, "✅ Off / Unscheduled", "N/A"
+                            formatted_shift, lateness_str, late_mins, status, sched_name = "N/A", "0m 0s", 0.0, "⚪ Off / Unscheduled", "N/A"
 
                         lateness_results.append({
                             "Agent": agent, "Date": display_date_str, "IEX ID": iex_id if iex_id else "N/A",
@@ -119,20 +164,28 @@ with tab1:
                         })
 
                     df_final = pd.DataFrame(lateness_results).sort_values(by=["Lateness (Mins)", "Scheduled Shift Start", "Agent"], ascending=[False, True, True])
-                    st.success("Lateness Report Processed Successfully!")
-                    st.dataframe(df_final, use_container_width=True)
+                    
+                    # Metrics Banner
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("Total Agents Audited", len(df_final))
+                    m2.metric("Late Logins", len(df_final[df_final["Status"] == "❌ Late"]))
+                    m3.metric("On-Time / Unscheduled", len(df_final[df_final["Status"] != "❌ Late"]))
 
+                    st.dataframe(df_final, use_container_width=True)
                     st.download_button("📥 Download Lateness CSV Report", data=df_final.to_csv(index=False).encode("utf-8"), file_name="agent_lateness_report_daily.csv", mime="text/csv")
             except Exception as e:
                 st.error(f"An error occurred while processing: {e}")
 
+
+# ==========================================
 # --- TAB 2: MEAL EXCEEDED ---
+# ==========================================
 with tab2:
-    st.subheader("Generate Meal Exceeded Audit Report")
-    file_ts_meal = st.file_uploader("Upload Daily Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_meal_upload")
+    st.subheader("Meal Duration Audit (>60 Mins)")
+    file_ts_meal = st.file_uploader("Upload Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_meal_upload")
 
     if file_ts_meal:
-        if st.button("Process Meal Audit Report", type="primary"):
+        if st.button("Generate Meal Audit", type="primary", use_container_width=True):
             try:
                 df = pd.read_csv(file_ts_meal)
                 df["Timestamp"] = pd.to_datetime(df["Timestamp"])
@@ -172,15 +225,85 @@ with tab2:
                                     "Actual Duration": f"{int(duration_min)}m {int(duration_sec % 60)}s",
                                     "Total Minutes": round(duration_min, 2), "Exceeded (vs 60m)": exceeded_str,
                                     "Exceeded Minutes": round(exceeded_sec / 60.0, 2),
-                                    "Status": "❌ Exceeded" if exceeded_sec > 0 else "✅ Within SLA"
+                                    "Status": "❌ Exceeded SLA" if exceeded_sec > 0 else "✅ Within SLA"
                                 })
                                 in_meal = False
                                 meal_start = None
 
                 df_meals = pd.DataFrame(meal_records).drop_duplicates(subset=["Agent", "Meal Start"]).sort_values(by="Exceeded Minutes", ascending=False)
-                st.success("Meal Exceeded Audit Processed Successfully!")
-                st.dataframe(df_meals, use_container_width=True)
+                
+                # Metrics Banner
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Total Meals Logged", len(df_meals))
+                m2.metric("Meals Exceeding 60m", len(df_meals[df_meals["Exceeded Minutes"] > 0]))
+                m3.metric("Compliant Meals", len(df_meals[df_meals["Exceeded Minutes"] == 0]))
 
+                st.dataframe(df_meals, use_container_width=True)
                 st.download_button("📥 Download Meal Exceeded CSV Report", data=df_meals.to_csv(index=False).encode("utf-8"), file_name="meal_exceeded_report.csv", mime="text/csv")
+            except Exception as e:
+                st.error(f"An error occurred while processing: {e}")
+
+
+# ==========================================
+# --- TAB 3: BREAK EXCEEDED ---
+# ==========================================
+with tab3:
+    st.subheader("Break Duration Audit (>15 Mins)")
+    file_ts_break = st.file_uploader("Upload Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_break_upload")
+
+    if file_ts_break:
+        if st.button("Generate Break Audit", type="primary", use_container_width=True):
+            try:
+                df = pd.read_csv(file_ts_break)
+                df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+                df = df.sort_values(by=["Agent", "Timestamp"]).reset_index(drop=True)
+
+                break_records = []
+                BREAK_LIMIT_MINS = 15
+
+                for agent, group in df.groupby("Agent"):
+                    group = group.reset_index(drop=True)
+                    in_break = False
+                    break_start = None
+
+                    for idx, row in group.iterrows():
+                        if row["Type"] == "AGENT_STATUS/WENT_AWAY" and row.get("Away Reason") == "Break":
+                            in_break = True
+                            break_start = row["Timestamp"]
+                        elif in_break:
+                            is_returned_away = (row["Type"] == "AGENT_STATUS/RETURNED_FROM_AWAY")
+                            avail_val = str(row.get("Available For", ""))
+                            is_voice_avail = (row["Type"] == "AGENT_AVAILABILITY/UPDATED" and ("VOICE" in avail_val or "MESSAGING" in avail_val))
+
+                            if is_returned_away or is_voice_avail:
+                                break_end = row["Timestamp"]
+                                duration_sec = (break_end - break_start).total_seconds()
+                                duration_min = duration_sec / 60.0
+
+                                limit_sec = BREAK_LIMIT_MINS * 60
+                                exceeded_sec = max(0, duration_sec - limit_sec)
+                                exceeded_str = f"{int(exceeded_sec // 60)}m {int(exceeded_sec % 60)}s" if exceeded_sec > 0 else "0m 0s"
+
+                                break_records.append({
+                                    "Agent": agent, "Break Start": break_start.strftime("%H:%M:%S"),
+                                    "Break Return": break_end.strftime("%H:%M:%S"),
+                                    "Actual Duration": f"{int(duration_min)}m {int(duration_sec % 60)}s",
+                                    "Total Minutes": round(duration_min, 2), "Exceeded (vs 15m)": exceeded_str,
+                                    "Exceeded Minutes": round(exceeded_sec / 60.0, 2),
+                                    "Status": "❌ Exceeded SLA" if exceeded_sec > 0 else "✅ Within SLA"
+                                })
+                                in_break = False
+                                break_start = None
+
+                df_breaks = pd.DataFrame(break_records).drop_duplicates(subset=["Agent", "Break Start"]).sort_values(by="Exceeded Minutes", ascending=False)
+
+                # Metrics Banner
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Total Breaks Logged", len(df_breaks))
+                m2.metric("Breaks Exceeding 15m", len(df_breaks[df_breaks["Exceeded Minutes"] > 0]))
+                m3.metric("Compliant Breaks", len(df_breaks[df_breaks["Exceeded Minutes"] == 0]))
+
+                st.dataframe(df_breaks, use_container_width=True)
+                st.download_button("📥 Download Break Exceeded CSV Report", data=df_breaks.to_csv(index=False).encode("utf-8"), file_name="break_exceeded_report.csv", mime="text/csv")
             except Exception as e:
                 st.error(f"An error occurred while processing: {e}")
