@@ -310,4 +310,28 @@ with tab3:
                     for i in range(max_breaks):
                         col_name = f"Break {i+1}"
                         if i < len(data["breaks"]):
-                            row_data
+                            row_data[col_name] = data["breaks"][i]
+                        else:
+                            row_data[col_name] = "-"
+                            
+                    row_data["Total Exceeded (Mins)"] = data["total_exceeded"]
+                    row_data["Status"] = "❌ Exceeded SLA" if data["total_exceeded"] > 0 else "✅ Within SLA"
+                    final_rows.append(row_data)
+
+                df_breaks_wide = pd.DataFrame(final_rows)
+
+                # Metrics Banner
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Agents with Breaks", len(df_breaks_wide))
+                m2.metric("Agents Exceeding Allowance", len(df_breaks_wide[df_breaks_wide["Total Exceeded (Mins)"] > 0]))
+                m3.metric("Highest Break Count", max_breaks)
+
+                st.dataframe(df_breaks_wide, use_container_width=True)
+                st.download_button(
+                    "📥 Download Break Summary CSV", 
+                    data=df_breaks_wide.to_csv(index=False).encode("utf-8"), 
+                    file_name="break_summary_report.csv", 
+                    mime="text/csv"
+                )
+            except Exception as e:
+                st.error(f"An error occurred while processing: {e}")
