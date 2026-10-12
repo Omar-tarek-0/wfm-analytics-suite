@@ -401,7 +401,7 @@ with tab2:
                         elif in_meal:
                             is_returned_away = (row["Type"] == "AGENT_STATUS/RETURNED_FROM_AWAY")
                             avail_val = str(row.get("Available For", ""))
-                            is_voice_avail = (row["Type"] == "AGENT_AVAILABILITY/UPDATED" and ("VOICE" in avail_val or "MESSAGING" in avail_val))
+                            is_voice_avail = (row["Type"] == "AGENT_AVAILABILITY/UPDATED" and ("VOICE" in avail_val or "MESSAGING" in avail_val or "MAIL","TASK" in avail_val ))
                             is_floor_support = (row["Type"] == "AGENT_STATUS/CHANGED_ACTIVE_REASON" and row.get("Active Reason") == "Floor Support (Unavailable)")
 
                             if is_returned_away or is_voice_avail or is_floor_support:
