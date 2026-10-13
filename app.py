@@ -249,14 +249,22 @@ def load_mapping():
             
             clean_mapping = {}
             for idx, row in df_map.iterrows():
-                name = row.iloc[0]
-                iex_id = row.iloc[1]
+                # Adjusted to match your CSV: Column 0 is IEX ID, Column 1 is Name
+                iex_id = row.iloc[0]
+                name = row.iloc[1]
                 
                 # Only process if both the name and IEX ID actually exist
                 if pd.notna(name) and pd.notna(iex_id):
                     # Force the name to be a string before cleaning it
                     clean_name = " ".join(str(name).split()).lower()
-                    clean_mapping[clean_name] = iex_id
+                    
+                    # Ensure IEX ID is a clean whole number (removes any .0 decimals)
+                    try:
+                        clean_iex = int(float(iex_id))
+                    except ValueError:
+                        clean_iex = iex_id
+                        
+                    clean_mapping[clean_name] = clean_iex
                     
             return clean_mapping
         except Exception as e:
