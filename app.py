@@ -400,11 +400,18 @@ with tab2:
                             meal_start = row["Timestamp"]
                         elif in_meal:
                             is_returned_away = (row["Type"] == "AGENT_STATUS/RETURNED_FROM_AWAY")
-                            avail_val = str(row.get("Available For", ""))
-                            is_voice_avail = (row["Type"] == "AGENT_AVAILABILITY/UPDATED" and ("VOICE" in avail_val or "MESSAGING" in avail_val or "MAIL","TASK" in avail_val ))
+                            avail_val = str(row.get("Available For", "")).upper()
+                            
+                            is_avail_update = (row["Type"] == "AGENT_AVAILABILITY/UPDATED")
+                            is_voice = is_avail_update and "VOICE" in avail_val
+                            is_msg = is_avail_update and "MESSAGING" in avail_val
+                            is_mail = is_avail_update and ("MAIL" in avail_val or "EMAIL" in avail_val)
+                            is_task = is_avail_update and "TASK" in avail_val
+                            
+                            is_any_avail = is_voice or is_msg or is_mail or is_task
                             is_floor_support = (row["Type"] == "AGENT_STATUS/CHANGED_ACTIVE_REASON" and row.get("Active Reason") == "Floor Support (Unavailable)")
 
-                            if is_returned_away or is_voice_avail or is_floor_support:
+                            if is_returned_away or is_any_avail or is_floor_support:
                                 meal_end = row["Timestamp"]
                                 duration_sec = (meal_end - meal_start).total_seconds()
                                 duration_min = duration_sec / 60.0
@@ -412,7 +419,20 @@ with tab2:
                                 limit_sec = MEAL_LIMIT_MINS * 60
                                 exceeded_sec = max(0, duration_sec - limit_sec)
                                 exceeded_str = f"{int(exceeded_sec // 60)}m {int(exceeded_sec % 60)}s" if exceeded_sec > 0 else "0m 0s"
-                                return_activity = "Floor Support (SME)" if is_floor_support else "Back to Voice"
+                                
+                                # Determine specific return activity text
+                                if is_floor_support:
+                                    return_activity = "Floor Support (SME)"
+                                elif is_msg:
+                                    return_activity = "Back to Messaging"
+                                elif is_mail:
+                                    return_activity = "Back to Email"
+                                elif is_task:
+                                    return_activity = "Back to Task"
+                                elif is_voice:
+                                    return_activity = "Back to Voice"
+                                else:
+                                    return_activity = "Returned from Away"
 
                                 meal_records.append({
                                     "Agent": agent, "Meal Start": meal_start.strftime("%H:%M:%S"),
@@ -515,7 +535,7 @@ with tab3:
                             row_data[col_name] = "-"
 
                     row_data["Total Exceeded (Mins)"] = data["total_exceeded"]
-                    row_data["Status"] = " Exceeded SLA" if data["total_exceeded"] > 0 else "Within SLA"
+                    row_data["Status"] = "❌ Exceeded SLA" if data["total_exceeded"] > 0 else "✅ Within SLA"
                     final_rows.append(row_data)
 
                 df_breaks_wide = pd.DataFrame(final_rows)
