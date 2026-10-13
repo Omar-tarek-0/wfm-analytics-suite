@@ -412,18 +412,19 @@ with tab2:
                         if row["Type"] == "AGENT_STATUS/WENT_AWAY" and row.get("Away Reason") == "Meal":
                             in_meal = True
                             meal_start = row["Timestamp"]
-                        elif in_meal:
+                       elif in_meal:
                             is_returned_away = (row["Type"] == "AGENT_STATUS/RETURNED_FROM_AWAY")
                             avail_val = str(row.get("Available For", "")).upper()
-                            
-                            is_avail_update = (row["Type"] == "AGENT_AVAILABILITY/UPDATED")
-                            is_voice = is_avail_update and "VOICE" in avail_val
-                            is_msg = is_avail_update and "MESSAGING" in avail_val
-                            is_mail = is_avail_update and ("MAIL" in avail_val or "EMAIL" in avail_val)
-                            is_task = is_avail_update and "TASK" in avail_val
-                            
-                            is_any_avail = is_voice or is_msg or is_mail or is_task
                             is_floor_support = (row["Type"] == "AGENT_STATUS/CHANGED_ACTIVE_REASON" and row.get("Active Reason") == "Floor Support (Unavailable)")
+                            
+                            # Dynamically check for ANY channel they went available for
+                            channels = []
+                            if "VOICE" in avail_val: channels.append("Voice")
+                            if "MESSAGING" in avail_val: channels.append("Messaging")
+                            if "MAIL" in avail_val or "EMAIL" in avail_val: channels.append("Email")
+                            if "TASK" in avail_val: channels.append("Task")
+                            
+                            is_any_avail = len(channels) > 0
 
                             if is_returned_away or is_any_avail or is_floor_support:
                                 meal_end = row["Timestamp"]
@@ -434,18 +435,13 @@ with tab2:
                                 exceeded_sec = max(0, duration_sec - limit_sec)
                                 exceeded_str = f"{int(exceeded_sec // 60)}m {int(exceeded_sec % 60)}s" if exceeded_sec > 0 else "0m 0s"
                                 
-                                # Determine specific return activity text
+                                # Build the exact return activity label
                                 if is_floor_support:
                                     return_activity = "Floor Support (SME)"
-                                elif is_msg:
-                                    return_activity = "Back to Messaging"
-                                elif is_mail:
-                                    return_activity = "Back to Email"
-                                elif is_task:
-                                    return_activity = "Back to Task"
-                                elif is_voice:
-                                    return_activity = "Back to Voice"
-                                
+                                elif channels:
+                                    return_activity = f"Back to {' & '.join(channels)}"
+                                else:
+                                    return_activity = "Returned from Away"
 
                                 meal_records.append({
                                     "Agent": agent, "Meal Start": meal_start.strftime("%H:%M:%S"),
@@ -457,7 +453,6 @@ with tab2:
                                 })
                                 in_meal = False
                                 meal_start = None
-
                 df_meals = pd.DataFrame(meal_records).drop_duplicates(subset=["Agent", "Meal Start"]).sort_values(by="Exceeded Minutes", ascending=False)
 
                 # Metrics Banner
