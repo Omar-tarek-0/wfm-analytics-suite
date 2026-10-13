@@ -519,12 +519,13 @@ with tab3:
                                 break_start = None
 
                 # Build the wide-format table rows
+                # Build the wide-format table rows
                 final_rows = []
                 for agent in sorted(agent_map.keys()):
                     data = agent_map[agent]
                     row_data = {"Agent": agent}
 
-                    # Pad out break columns (Break 1, Break 2, etc.)
+                    # 1. First, build all Break columns in order
                     for i in range(max_breaks):
                         col_name = f"Break {i+1}"
                         if i < len(data["breaks"]):
@@ -532,12 +533,14 @@ with tab3:
                         else:
                             row_data[col_name] = "-"
 
-                        row_data["Total Exceeded (Mins)"] = data["total_exceeded"]
-                        row_data["Status"] = "❌ Exceeded SLA" if data["total_exceeded"] > 0 else "✅ Within SLA"
-                        final_rows.append(row_data)
+                    # 2. Then, append the summary columns at the very end
+                    row_data["Total Exceeded (Mins)"] = data["total_exceeded"]
+                    row_data["Status"] = "❌ Exceeded SLA" if data["total_exceeded"] > 0 else "✅ Within SLA"
+                    
+                    # 3. Finally, append the single row for this agent
+                    final_rows.append(row_data)
 
                 df_breaks_wide = pd.DataFrame(final_rows)
-
                 # Metrics Banner
                 m1, m2, m3 = st.columns(3)
                 kpi_card(m1, "Agents with Breaks", len(df_breaks_wide), ACCENT_INDIGO)
