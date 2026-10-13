@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-
+import os
 # Page Configuration
 st.set_page_config(
     page_title="WFM Operations Analytics Suite",
@@ -239,8 +239,6 @@ exclude_agents = [
     "Hassan Hussein", "Zainab Atifi", "Omar Mahmoud"
 ]
 exclude_set = set(name.strip().lower() for name in exclude_agents)
-
-import os
 
 # --- DYNAMIC MAPPING FROM CSV ---
 @st.cache_data
