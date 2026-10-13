@@ -240,27 +240,26 @@ exclude_agents = [
 ]
 exclude_set = set(name.strip().lower() for name in exclude_agents)
 
-iex_mapping = {
-    "Kenzie Mohamed": 222463, "Mahmoud Salama": 222464, "Ahmed Ibrahim": 197745,
-    "Ahmed Moustafa": 222465, "Abanob Fahmy": 223785, "Abdallah Mortada": 223778,
-    "Abdelrahman Ibrahim": 223783, "Abdullah Ali": 223770, "Ahmad Zayton": 223769,
-    "Ahmed Ahmed": 223761, "Ammar Yasser": 223776, "Maha Ali": 223765,
-    "Malak Ramadan": 223768, "Marco Khalil": 223766, "Mariam Ansary": 223762,
-    "Marwan Mohammed": 223779, "Marwan Ahmed": 223763, "Mohamed Mohamed": 223764,
-    "Mohamed Salama": 223771, "Mohamed Elsaadny": 223760, "Mohamed Hassan Hathoot": 213847,
-    "Mohamed Abass": 223780, "Mohamed Abdelwahab": 213729, "Osama Ali": 223777,
-    "Shahd Salah": 223774, "Yassin Fahmy": 223782, "Youssef Taher": 223775,
-    "Youssef Mahmoud": 223759, "Youssef Abdelkader": 223781, "Youssef Eldesouky": 223784,
-    "Yusuf Abdulfattah": 223773, "Muhmad Abdelmajid": 226173, "Mahmohd El Kafas": 226174,
-    "Mohamed Fawzy": 226176, "Omnia Emam": 226177, "Hoda Ouis": 226178,
-    "Ziad Saeed": 226179, "Youssef Hamed": 226180, "Monzer Manaa": 226181,
-    "Youssef Abdelhamid": 226182, "Eslam Attia": 226184, "Ahmed Hassan": 226185,
-    "Mohamed Hussein": 226186, "Mohamed Abdel Kader": 226187, "Mohamed Said": 226188,
-    "Moaz Saleh": 226189, "Omar Eissa": 226190, "Shada Mohamed": 226191,
-    "Youssef Hashim": 226192, "Hagar Mohamed": 226194, "Mohamed Hytham Mohamed": 226195,
-    "Mohamed Abdelazizi": 222902,
-}
-iex_mapping_clean = {" ".join(k.split()).lower(): v for k, v in iex_mapping.items()}
+import os
+
+# --- DYNAMIC MAPPING FROM CSV ---
+@st.cache_data
+def load_mapping():
+    if os.path.exists("mapping.csv"):
+        try:
+            df_map = pd.read_csv("mapping.csv")
+            # Automatically grabs Column 1 (Name) and Column 2 (IEX ID) regardless of header names
+            raw_dict = dict(zip(df_map.iloc[:, 0].astype(str).str.strip(), df_map.iloc[:, 1]))
+            # Cleans the formatting automatically
+            return {" ".join(k.split()).lower(): v for k, v in raw_dict.items() if str(v).lower() != 'nan'}
+        except Exception as e:
+            st.error(f"Error reading mapping.csv: {e}")
+            return {}
+    else:
+        st.warning("⚠️ mapping.csv not found in the repository. Lateness audit will not map IEX IDs.")
+        return {}
+
+iex_mapping_clean = load_mapping()
 
 
 # ==========================================
