@@ -246,10 +246,19 @@ def load_mapping():
     if os.path.exists("mapping.csv"):
         try:
             df_map = pd.read_csv("mapping.csv")
-            # Automatically grabs Column 1 (Name) and Column 2 (IEX ID) regardless of header names
-            raw_dict = dict(zip(df_map.iloc[:, 0].astype(str).str.strip(), df_map.iloc[:, 1]))
-            # Cleans the formatting automatically
-            return {" ".join(k.split()).lower(): v for k, v in raw_dict.items() if str(v).lower() != 'nan'}
+            
+            clean_mapping = {}
+            for idx, row in df_map.iterrows():
+                name = row.iloc[0]
+                iex_id = row.iloc[1]
+                
+                # Only process if both the name and IEX ID actually exist
+                if pd.notna(name) and pd.notna(iex_id):
+                    # Force the name to be a string before cleaning it
+                    clean_name = " ".join(str(name).split()).lower()
+                    clean_mapping[clean_name] = iex_id
+                    
+            return clean_mapping
         except Exception as e:
             st.error(f"Error reading mapping.csv: {e}")
             return {}
