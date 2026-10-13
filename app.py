@@ -431,8 +431,7 @@ with tab2:
                                     return_activity = "Back to Task"
                                 elif is_voice:
                                     return_activity = "Back to Voice"
-                                else:
-                                    return_activity = "Returned from Away"
+                                
 
                                 meal_records.append({
                                     "Agent": agent, "Meal Start": meal_start.strftime("%H:%M:%S"),
