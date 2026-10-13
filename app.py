@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import os
+
 # Page Configuration
 st.set_page_config(
     page_title="WFM Operations Analytics Suite",
@@ -160,13 +161,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
 # --- UI helper functions (display only) ---
 ACCENT_AMBER = "#F59E0B"
 ACCENT_TEAL = "#0E9F8E"
 ACCENT_INDIGO = "#5B6CFF"
 ACCENT_CORAL = "#EF4444"
-
 
 def section_header(icon, title, subtitle, tint):
     st.markdown(
@@ -182,7 +181,6 @@ def section_header(icon, title, subtitle, tint):
         unsafe_allow_html=True,
     )
 
-
 def kpi_card(col, label, value, accent):
     col.markdown(
         f"""
@@ -193,7 +191,6 @@ def kpi_card(col, label, value, accent):
         """,
         unsafe_allow_html=True,
     )
-
 
 def style_status(df, col):
     def _color(v):
@@ -206,7 +203,6 @@ def style_status(df, col):
             return "background-color: rgba(128,128,128,0.16); font-weight: 600"
         return ""
     return df.style.apply(lambda s: s.map(_color), subset=[col])
-
 
 def table_title(text):
     st.markdown(f'<p class="table-title">{text}</p>', unsafe_allow_html=True)
@@ -249,16 +245,11 @@ def load_mapping():
             
             clean_mapping = {}
             for idx, row in df_map.iterrows():
-                # Adjusted to match your CSV: Column 0 is IEX ID, Column 1 is Name
                 iex_id = row.iloc[0]
                 name = row.iloc[1]
                 
-                # Only process if both the name and IEX ID actually exist
                 if pd.notna(name) and pd.notna(iex_id):
-                    # Force the name to be a string before cleaning it
                     clean_name = " ".join(str(name).split()).lower()
-                    
-                    # Ensure IEX ID is a clean whole number (removes any .0 decimals)
                     try:
                         clean_iex = int(float(iex_id))
                     except ValueError:
@@ -380,8 +371,8 @@ with tab1:
                     st.download_button("📥 Download Lateness CSV Report", data=df_final.to_csv(index=False).encode("utf-8"), file_name="agent_lateness_report_daily.csv", mime="text/csv")
             except Exception as e:
                 st.error(f"An error occurred while processing: {e}")
-    else:
-        st.info("Upload both files above to unlock the audit.", icon="📂")
+        else:
+            st.info("Upload both files above to unlock the audit.", icon="📂")
 
 
 # ==========================================
@@ -412,12 +403,11 @@ with tab2:
                         if row["Type"] == "AGENT_STATUS/WENT_AWAY" and row.get("Away Reason") == "Meal":
                             in_meal = True
                             meal_start = row["Timestamp"]
-                       elif in_meal:
+                        elif in_meal:
                             is_returned_away = (row["Type"] == "AGENT_STATUS/RETURNED_FROM_AWAY")
                             avail_val = str(row.get("Available For", "")).upper()
                             is_floor_support = (row["Type"] == "AGENT_STATUS/CHANGED_ACTIVE_REASON" and row.get("Active Reason") == "Floor Support (Unavailable)")
                             
-                            # Dynamically check for ANY channel they went available for
                             channels = []
                             if "VOICE" in avail_val: channels.append("Voice")
                             if "MESSAGING" in avail_val: channels.append("Messaging")
@@ -435,7 +425,6 @@ with tab2:
                                 exceeded_sec = max(0, duration_sec - limit_sec)
                                 exceeded_str = f"{int(exceeded_sec // 60)}m {int(exceeded_sec % 60)}s" if exceeded_sec > 0 else "0m 0s"
                                 
-                                # Build the exact return activity label
                                 if is_floor_support:
                                     return_activity = "Floor Support (SME)"
                                 elif channels:
@@ -453,6 +442,7 @@ with tab2:
                                 })
                                 in_meal = False
                                 meal_start = None
+
                 df_meals = pd.DataFrame(meal_records).drop_duplicates(subset=["Agent", "Meal Start"]).sort_values(by="Exceeded Minutes", ascending=False)
 
                 # Metrics Banner
@@ -542,9 +532,9 @@ with tab3:
                         else:
                             row_data[col_name] = "-"
 
-                    row_data["Total Exceeded (Mins)"] = data["total_exceeded"]
-                    row_data["Status"] = "❌ Exceeded SLA" if data["total_exceeded"] > 0 else "✅ Within SLA"
-                    final_rows.append(row_data)
+                        row_data["Total Exceeded (Mins)"] = data["total_exceeded"]
+                        row_data["Status"] = "❌ Exceeded SLA" if data["total_exceeded"] > 0 else "✅ Within SLA"
+                        final_rows.append(row_data)
 
                 df_breaks_wide = pd.DataFrame(final_rows)
 
