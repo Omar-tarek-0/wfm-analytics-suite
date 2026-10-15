@@ -383,64 +383,51 @@ with tab2:
 
     file_ts_meal = st.file_uploader("Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_meal_upload")
 
-    if file_ts_meal:
-        if st.button("Generate Meal Audit", type="primary", use_container_width=True):
-            try:
-                df = pd.read_csv(file_ts_meal)
-                df["Timestamp"] = pd.to_datetime(df["Timestamp"])
-                df = df.sort_values(by=["Agent", "Timestamp"]).reset_index(drop=True)
-
-                meal_records = []
-                MEAL_LIMIT_MINS = 60
-
-                for agent, group in df.groupby("Agent"):
-                    group = group.reset_index(drop=True)
-                    in_meal = False
-                    meal_start = None
-
-                    for idx, row in group.iterrows():
-                        if row["Type"] == "AGENT_STATUS/WENT_AWAY" and row.get("Away Reason") == "Meal":
-                            in_meal = True
-                            meal_start = row["Timestamp"]
-                        elif in_meal:
-                            is_returned_away = (row["Type"] == "AGENT_STATUS/RETURNED_FROM_AWAY")
-                            avail_val = str(row.get("Available For", "")).upper()
-                            is_floor_support = (row["Type"] == "AGENT_STATUS/CHANGED_ACTIVE_REASON" and row.get("Active Reason") == "Floor Support (Unavailable)")
+   elif in_meal:
+                            event_type = str(row["Type"]).upper()
                             
+                            is_returned_away = (event_type == "AGENT_STATUS/RETURNED_FROM_AWAY")
+                            is_floor_support = (event_type == "AGENT_STATUS/CHANGED_ACTIVE_REASON" and str(row.get("Active Reason")) == "Floor Support (Unavailable)")
+                            
+                            # ONLY check channels if the event is officially an availability update
                             channels = []
-                            if "VOICE" in avail_val: channels.append("Voice")
-                            if "MESSAGING" in avail_val: channels.append("Messaging")
-                            if "MAIL" in avail_val or "EMAIL" in avail_val: channels.append("Email")
-                            if "TASK" in avail_val: channels.append("Task")
-                            
+                            if event_type == "AGENT_AVAILABILITY/UPDATED":
+                                avail_val = str(row.get("Available For", "")).upper()
+                                if "VOICE" in avail_val: channels.append("Voice")
+                                if "MESSAGING" in avail_val: channels.append("Messaging")
+                                if "MAIL" in avail_val or "EMAIL" in avail_val: channels.append("Email")
+                                if "TASK" in avail_val: channels.append("Task")
+                                
                             is_any_avail = len(channels) > 0
 
                             if is_returned_away or is_any_avail or is_floor_support:
                                 meal_end = row["Timestamp"]
                                 duration_sec = (meal_end - meal_start).total_seconds()
-                                duration_min = duration_sec / 60.0
-
-                                limit_sec = MEAL_LIMIT_MINS * 60
-                                exceeded_sec = max(0, duration_sec - limit_sec)
-                                exceeded_str = f"{int(exceeded_sec // 60)}m {int(exceeded_sec % 60)}s" if exceeded_sec > 0 else "0m 0s"
                                 
-                                if is_floor_support:
-                                    return_activity = "Floor Support (SME)"
-                                elif channels:
-                                    return_activity = f"Back to {' & '.join(channels)}"
-                                else:
-                                    return_activity = "Returned from Away"
+                                # Safety net: Ignore simultaneous 0-second glitches from Gladly
+                                if duration_sec > 0:
+                                    duration_min = duration_sec / 60.0
+                                    limit_sec = MEAL_LIMIT_MINS * 60
+                                    exceeded_sec = max(0, duration_sec - limit_sec)
+                                    exceeded_str = f"{int(exceeded_sec // 60)}m {int(exceeded_sec % 60)}s" if exceeded_sec > 0 else "0m 0s"
+                                    
+                                    if is_floor_support:
+                                        return_activity = "Floor Support (SME)"
+                                    elif channels:
+                                        return_activity = f"Back to {' & '.join(channels)}"
+                                    else:
+                                        return_activity = "Returned from Away"
 
-                                meal_records.append({
-                                    "Agent": agent, "Meal Start": meal_start.strftime("%H:%M:%S"),
-                                    "Meal Return": meal_end.strftime("%H:%M:%S"), "Return Activity": return_activity,
-                                    "Actual Duration": f"{int(duration_min)}m {int(duration_sec % 60)}s",
-                                    "Total Minutes": round(duration_min, 2), "Exceeded (vs 60m)": exceeded_str,
-                                    "Exceeded Minutes": round(exceeded_sec / 60.0, 2),
-                                    "Status": "❌ Exceeded SLA" if exceeded_sec > 0 else "✅ Within SLA"
-                                })
-                                in_meal = False
-                                meal_start = None
+                                    meal_records.append({
+                                        "Agent": agent, "Meal Start": meal_start.strftime("%H:%M:%S"),
+                                        "Meal Return": meal_end.strftime("%H:%M:%S"), "Return Activity": return_activity,
+                                        "Actual Duration": f"{int(duration_min)}m {int(duration_sec % 60)}s",
+                                        "Total Minutes": round(duration_min, 2), "Exceeded (vs 60m)": exceeded_str,
+                                        "Exceeded Minutes": round(exceeded_sec / 60.0, 2),
+                                        "Status": "❌ Exceeded SLA" if exceeded_sec > 0 else "✅ Within SLA"
+                                    })
+                                    in_meal = False
+                                    meal_start = None
 
                 df_meals = pd.DataFrame(meal_records).drop_duplicates(subset=["Agent", "Meal Start"]).sort_values(by="Exceeded Minutes", ascending=False)
 
