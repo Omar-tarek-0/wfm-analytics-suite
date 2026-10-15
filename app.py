@@ -237,7 +237,6 @@ exclude_agents = [
 exclude_set = set(name.strip().lower() for name in exclude_agents)
 
 # --- DYNAMIC MAPPING FROM CSV ---
-@st.cache_data
 def load_mapping():
     if os.path.exists("mapping.csv"):
         try:
