@@ -383,7 +383,26 @@ with tab2:
 
     file_ts_meal = st.file_uploader("Timestamps (`agent_timestamps.csv`)", type=["csv"], key="ts_meal_upload")
 
-   elif in_meal:
+    if file_ts_meal:
+        if st.button("Generate Meal Audit", type="primary", use_container_width=True):
+            try:
+                df = pd.read_csv(file_ts_meal)
+                df["Timestamp"] = pd.to_datetime(df["Timestamp"], format="mixed", dayfirst=True)
+                df = df.sort_values(by=["Agent", "Timestamp"]).reset_index(drop=True)
+
+                meal_records = []
+                MEAL_LIMIT_MINS = 60
+
+                for agent, group in df.groupby("Agent"):
+                    group = group.reset_index(drop=True)
+                    in_meal = False
+                    meal_start = None
+
+                    for idx, row in group.iterrows():
+                        if row["Type"] == "AGENT_STATUS/WENT_AWAY" and row.get("Away Reason") == "Meal":
+                            in_meal = True
+                            meal_start = row["Timestamp"]
+                        elif in_meal:
                             event_type = str(row["Type"]).upper()
                             
                             is_returned_away = (event_type == "AGENT_STATUS/RETURNED_FROM_AWAY")
@@ -459,7 +478,7 @@ with tab3:
         if st.button("Generate Break Summary", type="primary", use_container_width=True):
             try:
                 df = pd.read_csv(file_ts_break)
-                df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+                df["Timestamp"] = pd.to_datetime(df["Timestamp"], format="mixed", dayfirst=True)
                 df = df.sort_values(by=["Agent", "Timestamp"]).reset_index(drop=True)
 
                 agent_map = {}
@@ -486,25 +505,26 @@ with tab3:
                             if is_returned_away or is_voice_avail:
                                 break_end = row["Timestamp"]
                                 duration_sec = (break_end - break_start).total_seconds()
-                                duration_min = int(round(duration_sec / 60.0))
+                                
+                                if duration_sec > 0:
+                                    duration_min = int(round(duration_sec / 60.0))
 
-                                start_str = break_start.strftime("%H:%M")
-                                end_str = break_end.strftime("%H:%M")
+                                    start_str = break_start.strftime("%H:%M")
+                                    end_str = break_end.strftime("%H:%M")
 
-                                exceeded_mins = max(0, duration_min - BREAK_LIMIT_MINS)
-                                break_str = f"{duration_min} mins ({start_str} - {end_str})"
+                                    exceeded_mins = max(0, duration_min - BREAK_LIMIT_MINS)
+                                    break_str = f"{duration_min} mins ({start_str} - {end_str})"
 
-                                if exceeded_mins > 0:
-                                    break_str += f"  +{exceeded_mins}m"
+                                    if exceeded_mins > 0:
+                                        break_str += f"  +{exceeded_mins}m"
 
-                                agent_map[agent]["breaks"].append(break_str)
-                                agent_map[agent]["total_exceeded"] += exceeded_mins
-                                max_breaks = max(max_breaks, len(agent_map[agent]["breaks"]))
+                                    agent_map[agent]["breaks"].append(break_str)
+                                    agent_map[agent]["total_exceeded"] += exceeded_mins
+                                    max_breaks = max(max_breaks, len(agent_map[agent]["breaks"]))
 
-                                in_break = False
-                                break_start = None
+                                    in_break = False
+                                    break_start = None
 
-                # Build the wide-format table rows
                 # Build the wide-format table rows
                 final_rows = []
                 for agent in sorted(agent_map.keys()):
@@ -527,6 +547,7 @@ with tab3:
                     final_rows.append(row_data)
 
                 df_breaks_wide = pd.DataFrame(final_rows)
+                
                 # Metrics Banner
                 m1, m2, m3 = st.columns(3)
                 kpi_card(m1, "Agents with Breaks", len(df_breaks_wide), ACCENT_INDIGO)
